@@ -54,6 +54,7 @@ from icecream import ic
 
 local_rank = None
 
+Image.MAX_IMAGE_PIXELS = None
 
 def read_jsonl(filename):
     lines = []
