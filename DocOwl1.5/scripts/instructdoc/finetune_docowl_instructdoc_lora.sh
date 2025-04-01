@@ -19,7 +19,7 @@
 # echo $DISTRIBUTED_ARGS
 
 # change LOAD to your local path of DocOwl1.5-stage1
-LOAD='mPLUG/DocOwl1.5-stage1'
+LOAD='mPLUG/DocOwl1.5-Omni'
 
 # batch size = per_device_train_batch_size x GPUS_PER_NODE x NNODES x gradient_accumulation_steps
 DATA_FILE=/mnt/KAIST/son/VD-Instruct/data/vd-instruct/train/no_ocr/instructdoc_docowl_train_5k.jsonl
