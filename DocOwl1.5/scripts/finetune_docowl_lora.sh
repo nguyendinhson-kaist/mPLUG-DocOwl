@@ -1,51 +1,54 @@
-#!/bin/bash
-if [ $MASTER_ADDR ];then
-	echo $MASTER_ADDR
-    echo $MASTER_PORT
-    echo $WORLD_SIZE
-    echo $RANK
-else
-	MASTER_ADDR=127.0.0.1
-    MASTER_PORT=2$(($RANDOM % 10))$(($RANDOM % 10))15
-    WORLD_SIZE=1
-    RANK=0
-fi
-# Change for multinode config
-NNODES=${WORLD_SIZE}
-NODE_RANK=${RANK}
-GPUS_PER_NODE=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
-# GPUS_PER_NODE=1
-DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE --nnodes $NNODES --node_rank $NODE_RANK --master_addr $MASTER_ADDR --master_port $MASTER_PORT"
-echo $DISTRIBUTED_ARGS
+# #!/bin/bash
+# if [ $MASTER_ADDR ];then
+# 	echo $MASTER_ADDR
+#     echo $MASTER_PORT
+#     echo $WORLD_SIZE
+#     echo $RANK
+# else
+# 	MASTER_ADDR=127.0.0.1
+#     MASTER_PORT=2$(($RANDOM % 10))$(($RANDOM % 10))15
+#     WORLD_SIZE=1
+#     RANK=0
+# fi
+# # Change for multinode config
+# NNODES=${WORLD_SIZE}
+# NODE_RANK=${RANK}
+# GPUS_PER_NODE=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
+# # GPUS_PER_NODE=1
+# DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE --nnodes $NNODES --node_rank $NODE_RANK --master_addr $MASTER_ADDR --master_port $MASTER_PORT"
+# echo $DISTRIBUTED_ARGS
 
 # change LOAD to your local path of DocOwl1.5-stage1
-LOAD='./mPLUG/DocOwl1.5-stage1'
+LOAD='mPLUG/DocOwl1.5-stage1'
 
 # batch size = per_device_train_batch_size x GPUS_PER_NODE x NNODES x gradient_accumulation_steps
-DATA_FILE=./DocDownstream-1.0/train.jsonl
-torchrun $DISTRIBUTED_ARGS mplug_docowl/train/train_docowl.py \
+DATA_FILE=/workspace/data/instructdoc/train/no-ocr/docowl_instructdoc_train_5k.jsonl
+IMAGER_FOLDER=/workspace/data/instructdoc/train
+# CUDA_VISIBLE_DEVICES=3 torchrun mplug_docowl/train/train_docowl.py \
+deepspeed -i localhost:2,3,4,5,6,7 mplug_docowl/train/train_docowl.py \
     --lora_enable True --lora_r 128 --lora_alpha 256 --vision2text_lr 2e-5 \
     --deepspeed ./scripts/zero2.json \
     --model_name_or_path $LOAD \
+    --cache_dir ./checkpoints \
     --version v1 \
     --data_path $DATA_FILE \
-    --image_folder './DocDownstream-1.0/' \
+    --image_folder $IMAGER_FOLDER \
     --image_size 448 \
     --crop_anchors 'grid_9' \
     --add_global_img True \
     --add_textual_crop_indicator True \
     --bf16 True \
-    --output_dir ./checkpoints/docowl1.5-lora \
-    --num_train_epochs 3 \
-    --per_device_train_batch_size 1 \
+    --output_dir ./checkpoints/docowl1.5-stage1-lora-wd-1e2 \
+    --num_train_epochs 1 \
+    --per_device_train_batch_size 6 \
     --per_device_eval_batch_size 1 \
-    --gradient_accumulation_steps 8 \
+    --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
     --save_steps 500 \
     --save_total_limit 4 \
     --learning_rate 1e-4 \
-    --weight_decay 0. \
+    --weight_decay 0.01 \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
@@ -57,4 +60,4 @@ torchrun $DISTRIBUTED_ARGS mplug_docowl/train/train_docowl.py \
     --freeze_backbone True \
     --dataloader_num_workers 4 \
     --lazy_preprocess True \
-    --report_to tensorboard
+    --report_to wandb

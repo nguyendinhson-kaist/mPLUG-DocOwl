@@ -32,3 +32,5 @@ evalcap
 
 core-*
 .nfs*
+checkpoints/
+wandb/

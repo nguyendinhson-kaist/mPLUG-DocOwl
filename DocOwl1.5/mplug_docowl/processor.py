@@ -198,17 +198,21 @@ class DocProcessor():
         text_list = query.split(self.media_token)
         text = text_list[0]
         image_token_ptr = 0
+        patch_position_idx = 0
         for next_text in text_list[1:]:
             if self.add_textual_crop_indicator:
                 # generate image placeholders with interleaved texutual crop indicator
                 # e.g. <global_img><|image|><crop_img_row0_col0><|image|><crop_img_row0_col1><|image|>...
-                for patch_pos in patch_position.tolist():
+                patch_position_idx_next = patch_position_idx + num_image_mult[image_token_ptr]
+                # for patch_pos in patch_position.tolist():
+                for patch_pos in patch_position[patch_position_idx:patch_position_idx_next].tolist():
                     # global non-crop image
                     if patch_pos[0] == self.anchor_max and patch_pos[1] == self.anchor_max:
                         text += '<global_img><|image|>'
                     else:
                         row_col = 'row'+str(patch_pos[0])+'_col'+str(patch_pos[1])
                         text += '<crop_img_'+row_col+'><|image|>'
+                patch_position_idx = patch_position_idx_next
             else: 
                 # generate successive image placeholders for a image, 1 crop img == 1 <|image|>
                 text += '<|image|>'*num_image_mult[image_token_ptr]
